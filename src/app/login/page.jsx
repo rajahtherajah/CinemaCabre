@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, Skull, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
-export default function LoginPage() {
+function LoginContent() {
   const [isSignup, setIsSignup] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [isLoading, setIsLoading] = useState(false);
@@ -206,5 +206,17 @@ export default function LoginPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="page-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+        <div style={{ color: 'var(--blood)', fontFamily: "'Cinzel', serif" }}>Summoning...</div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

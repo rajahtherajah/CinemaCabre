@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Skull, User, LogOut, Ticket, ChevronDown } from 'lucide-react';
+import { Skull, User, LogOut, Ticket, ChevronDown, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import ScaryTransition from '@/components/ScaryTransition';
@@ -58,6 +58,22 @@ function UserMenu() {
             <div style={{ padding: '8px 12px', fontSize: '0.8rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', marginBottom: '4px' }}>
               {user?.email}
             </div>
+            {user?.email === 'admin@admin.com' && (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',
+                  color: 'var(--blood-bright)', textDecoration: 'none', fontSize: '0.9rem',
+                  borderRadius: 'var(--radius-sm)', transition: 'background 0.2s',
+                  fontWeight: 500,
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <ShieldAlert size={15} /> Admin Panel
+              </Link>
+            )}
             <Link
               href="/tickets"
               onClick={() => setOpen(false)}
@@ -109,6 +125,17 @@ export default function MainLayout({ children }) {
             <li><Link href="/movies" className={`nav-link ${pathname.startsWith('/movies') ? 'nav-link-active' : ''}`}>Movies</Link></li>
             {user && (
               <li><Link href="/tickets" className={`nav-link ${pathname === '/tickets' ? 'nav-link-active' : ''}`}>My Bookings</Link></li>
+            )}
+            {user && user.email === 'admin@admin.com' && (
+              <li>
+                <Link 
+                  href="/admin" 
+                  className={`nav-link ${pathname === '/admin' ? 'nav-link-active' : ''}`}
+                  style={{ color: 'var(--blood-bright)', fontWeight: 600 }}
+                >
+                  Admin Panel
+                </Link>
+              </li>
             )}
             <li>
               {loading ? (

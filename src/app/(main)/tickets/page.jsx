@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Ticket, Calendar, Clock, MapPin, Skull, Film, Loader, LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getUserBookings } from '@/lib/bookings';
+import { getUserBookings, cancelBooking } from '@/lib/bookings';
 
 export default function TicketsPage() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -39,6 +39,32 @@ export default function TicketsPage() {
   const handleLogout = async () => {
     await signOut();
     window.location.href = '/';
+  };
+
+  const handleCancelClick = async (booking) => {
+    const refundAmount = Math.round(booking.total_price * 0.7);
+    const confirmed = window.confirm(
+      `Are you sure you want to cancel your booking for "${booking.movie_title}"?\n\n` +
+      `Per underworld policies, only 70% (₹${refundAmount.toLocaleString()}) of the total amount (₹${booking.total_price.toLocaleString()}) will be refunded.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setLoading(true);
+      setError('');
+      const { data, error } = await cancelBooking(booking.id);
+      if (error) {
+        setError('Failed to cancel booking.');
+        console.error(error);
+      } else {
+        setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, status: 'refund_initiated' } : b));
+      }
+    } catch (err) {
+      setError('An error occurred during cancellation.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (authLoading || loading) {
@@ -137,11 +163,12 @@ export default function TicketsPage() {
                   </div>
                   <div style={{
                     padding: '4px 12px', borderRadius: 'var(--radius-sm)',
-                    background: booking.status === 'confirmed' ? 'rgba(74,222,128,0.1)' : 'var(--blood-subtle)',
-                    color: booking.status === 'confirmed' ? '#4ade80' : 'var(--blood-bright)',
+                    background: booking.status === 'confirmed' ? 'rgba(74,222,128,0.1)' : 'rgba(234,179,8,0.15)',
+                    color: booking.status === 'confirmed' ? '#4ade80' : '#eab308',
                     fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px',
+                    border: booking.status === 'confirmed' ? '1px solid rgba(74,222,128,0.2)' : '1px solid rgba(234,179,8,0.3)',
                   }}>
-                    {booking.status}
+                    {booking.status === 'refund_initiated' ? 'Refund Initiated' : booking.status}
                   </div>
                 </div>
               </div>
@@ -179,9 +206,36 @@ export default function TicketsPage() {
                     </div>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Total</div>
-                  <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--blood-bright)' }}>₹{booking.total_price?.toLocaleString()}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Total</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--blood-bright)' }}>₹{booking.total_price?.toLocaleString()}</div>
+                  </div>
+                  {booking.status === 'confirmed' && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="btn-ghost"
+                      onClick={() => handleCancelClick(booking)}
+                      style={{ 
+                        padding: '6px 14px', 
+                        fontSize: '0.75rem', 
+                        color: 'var(--blood-bright)', 
+                        borderColor: 'rgba(139, 0, 0, 0.4)',
+                        borderWidth: '1px',
+                        borderStyle: 'solid',
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel Booking
+                    </motion.button>
+                  )}
+                  {booking.status === 'refund_initiated' && (
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textAlign: 'right', fontStyle: 'italic' }}>
+                      70% Refund (₹{Math.round(booking.total_price * 0.7).toLocaleString()}) initiated
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -201,8 +255,8 @@ export default function TicketsPage() {
             }}
           >
             <Skull size={32} color="var(--blood)" style={{ marginBottom: '12px' }} />
-            <h4 style={{ fontFamily: "'Cinzel', serif", marginBottom: '6px', color: 'var(--text-primary)' }}>NO CANCELLATIONS</h4>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>Once booked, your fate is sealed. Refunds are not available in the underworld.</p>
+            <h4 style={{ fontFamily: "'Cinzel', serif", marginBottom: '6px', color: 'var(--text-primary)' }}>CANCELLATION POLICY</h4>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>Need to rewrite your destiny? Cancellations are allowed up to the showtime. A 30% retention fee applies, and 70% of the ticket price will be refunded.</p>
           </motion.div>
         )}
       </div>

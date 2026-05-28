@@ -3,12 +3,12 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Star, Clock, Film, Users, Calendar, MapPin, ChevronRight, Ticket, AlertTriangle, Skull } from 'lucide-react';
+import { Star, Clock, Film, Users, Calendar, MapPin, ChevronRight, Ticket, AlertTriangle, Skull, CreditCard, Wallet, Smartphone, Building, Check, Loader } from 'lucide-react';
 import { movies, theaters, showtimes, getNextDates } from '@/data/movies';
 import { useAuth } from '@/context/AuthContext';
 import { createBooking } from '@/lib/bookings';
 
-const STEPS = { INFO: 0, SHOWTIME: 1, SEATS: 2, SUMMARY: 3 };
+const STEPS = { INFO: 0, SHOWTIME: 1, SEATS: 2, PAYMENT: 3, SUMMARY: 4 };
 
 // Generate random sold seats
 const generateSoldSeats = () => {
@@ -35,6 +35,14 @@ export default function MovieDetailPage({ params }) {
   const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState('');
 
+  // Payment states
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvv: '', name: '' });
+  const [upiId, setUpiId] = useState('');
+  const [selectedBank, setSelectedBank] = useState('SBI');
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [paymentStepMessage, setPaymentStepMessage] = useState('');
+
   const seatRows = [
     { label: 'PREMIUM', rows: ['A', 'B', 'C'], cols: 16, priceKey: 'premium' },
     { label: 'EXECUTIVE', rows: ['D', 'E', 'F', 'G'], cols: 16, priceKey: 'executive' },
@@ -58,13 +66,36 @@ export default function MovieDetailPage({ params }) {
 
   const totalPrice = selectedSeats.reduce((sum, s) => sum + getSeatPrice(s), 0);
 
-  const handleBook = async () => {
+  // Billing breakdown calculations
+  const ticketSubtotal = totalPrice;
+  const convenienceFee = 30 * selectedSeats.length;
+  const cgst = Math.round(convenienceFee * 0.09 * 100) / 100;
+  const sgst = Math.round(convenienceFee * 0.09 * 100) / 100;
+  const grandTotal = Math.round(ticketSubtotal + convenienceFee + cgst + sgst);
+
+  const handlePayment = async () => {
     if (!user) {
       router.push(`/login?redirect=/movies/${movie.id}`);
       return;
     }
-    setIsBooking(true);
+
+    setPaymentProcessing(true);
     setBookingError('');
+
+    const messages = [
+      "Securing connection with payment gateway...",
+      "Authorizing transaction credentials...",
+      "Exchanging security tokens...",
+      "Confirming payment with banking servers..."
+    ];
+
+    for (let i = 0; i < messages.length; i++) {
+      setPaymentStepMessage(messages[i]);
+      await new Promise(r => setTimeout(r, 1000));
+    }
+
+    setPaymentStepMessage("Sealing your fate...");
+    await new Promise(r => setTimeout(r, 800));
 
     const theaterObj = theaters.find(t => t.id === selectedTheater);
     const { data, error } = await createBooking({
@@ -75,18 +106,18 @@ export default function MovieDetailPage({ params }) {
       showDate: selectedDate,
       showTime: selectedTime,
       seats: selectedSeats,
-      totalPrice: totalPrice,
+      totalPrice: grandTotal,
     });
 
     if (error) {
       console.error('Booking error:', error);
       setBookingError(error.message || 'Booking failed. Please try again.');
-      setIsBooking(false);
+      setPaymentProcessing(false);
       return;
     }
 
     setStep(STEPS.SUMMARY);
-    setIsBooking(false);
+    setPaymentProcessing(false);
   };
 
   const handleStartBooking = () => {
@@ -389,17 +420,16 @@ export default function MovieDetailPage({ params }) {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         className="btn-blood"
-                        onClick={handleBook}
-                        disabled={isBooking}
+                        onClick={() => {
+                          if (!user) {
+                            router.push(`/login?redirect=/movies/${movie.id}`);
+                            return;
+                          }
+                          setStep(STEPS.PAYMENT);
+                        }}
                         style={{ padding: '14px 36px', fontSize: '1rem' }}
                       >
-                        {isBooking ? (
-                          <motion.span animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
-                            Summoning...
-                          </motion.span>
-                        ) : (
-                          <>Pay ₹{totalPrice.toLocaleString()}</>
-                        )}
+                        Continue to Pay
                       </motion.button>
                     </div>
                   </motion.div>
@@ -408,7 +438,286 @@ export default function MovieDetailPage({ params }) {
             </motion.div>
           )}
 
-          {/* STEP 3: BOOKING CONFIRMATION */}
+          {/* STEP 3: SANDBOX PAYMENT SCREEN */}
+          {step === STEPS.PAYMENT && (
+            <motion.div key="payment" variants={stepVariants} initial="enter" animate="center" exit="exit">
+              {paymentProcessing ? (
+                /* LOADING/PROCESSING PANEL */
+                <div className="glass" style={{ padding: '60px 24px', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                    style={{ marginBottom: '24px', display: 'inline-block' }}
+                  >
+                    <Loader size={48} color="var(--blood-bright)" />
+                  </motion.div>
+                  <h3 className="creepy-font" style={{ fontSize: '1.8rem', marginBottom: '16px' }}>Processing Demonic Transaction</h3>
+                  <motion.p 
+                    key={paymentStepMessage}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', minHeight: '30px' }}
+                  >
+                    {paymentStepMessage}
+                  </motion.p>
+                </div>
+              ) : (
+                /* MAIN PAYMENT PANEL */
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
+                  
+                  {/* Left Column: Methods & Sandbox Mode */}
+                  <div className="glass" style={{ padding: '32px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                      <h3 style={{ fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <CreditCard size={20} color="var(--blood)" /> Payment Method
+                      </h3>
+                      <button className="btn-ghost" onClick={() => setStep(STEPS.SEATS)} style={{ fontSize: '0.85rem', padding: '6px 12px' }}>
+                        ← Change Seats
+                      </button>
+                    </div>
+
+                    {bookingError && (
+                      <div style={{ padding: '16px', background: 'var(--blood-subtle)', border: '1px solid var(--border-hover)', borderRadius: 'var(--radius-md)', marginBottom: '24px', color: 'var(--blood-bright)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <AlertTriangle size={16} />
+                        <div>{bookingError}</div>
+                      </div>
+                    )}
+
+                    {/* Method tabs */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '24px' }}>
+                      <button 
+                        type="button"
+                        className={`showtime-btn ${paymentMethod === 'card' ? 'showtime-btn-active' : ''}`}
+                        onClick={() => setPaymentMethod('card')}
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '12px 6px', fontSize: '0.8rem' }}
+                      >
+                        <CreditCard size={18} />
+                        Card
+                      </button>
+                      <button 
+                        type="button"
+                        className={`showtime-btn ${paymentMethod === 'upi' ? 'showtime-btn-active' : ''}`}
+                        onClick={() => setPaymentMethod('upi')}
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '12px 6px', fontSize: '0.8rem' }}
+                      >
+                        <Smartphone size={18} />
+                        UPI
+                      </button>
+                      <button 
+                        type="button"
+                        className={`showtime-btn ${paymentMethod === 'netbanking' ? 'showtime-btn-active' : ''}`}
+                        onClick={() => setPaymentMethod('netbanking')}
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '12px 6px', fontSize: '0.8rem' }}
+                      >
+                        <Building size={18} />
+                        Net Banking
+                      </button>
+                    </div>
+
+                    {/* Card Form */}
+                    {paymentMethod === 'card' && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Card Number</label>
+                          <input 
+                            type="text" 
+                            className="input-dark" 
+                            placeholder="4111 2222 3333 4444" 
+                            maxLength={19}
+                            value={cardDetails.number}
+                            onChange={(e) => {
+                              const v = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+                              const matches = v.match(/\d{4,16}/g);
+                              const match = matches && matches[0] || '';
+                              const parts = [];
+                              for (let i=0, len=match.length; i<len; i+=4) {
+                                parts.push(match.substring(i, i+4));
+                              }
+                              const formatted = parts.length > 0 ? parts.join(' ') : v;
+                              setCardDetails(prev => ({ ...prev, number: formatted }));
+                            }}
+                          />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Expiry Date</label>
+                            <input 
+                              type="text" 
+                              className="input-dark" 
+                              placeholder="MM/YY" 
+                              maxLength={5}
+                              value={cardDetails.expiry}
+                              onChange={(e) => {
+                                let v = e.target.value.replace(/\//g, '').replace(/[^0-9]/gi, '');
+                                if (v.length > 2) {
+                                  v = v.substring(0, 2) + '/' + v.substring(2, 4);
+                                }
+                                setCardDetails(prev => ({ ...prev, expiry: v }));
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>CVV</label>
+                            <input 
+                              type="password" 
+                              className="input-dark" 
+                              placeholder="***" 
+                              maxLength={3}
+                              value={cardDetails.cvv}
+                              onChange={(e) => {
+                                const v = e.target.value.replace(/[^0-9]/gi, '');
+                                setCardDetails(prev => ({ ...prev, cvv: v }));
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cardholder Name</label>
+                          <input 
+                            type="text" 
+                            className="input-dark" 
+                            placeholder="Cardholder Name" 
+                            value={cardDetails.name}
+                            onChange={(e) => setCardDetails(prev => ({ ...prev, name: e.target.value }))}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* UPI Form */}
+                    {paymentMethod === 'upi' && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>UPI ID (VPA)</label>
+                          <input 
+                            type="text" 
+                            className="input-dark" 
+                            placeholder="username@okaxis" 
+                            value={upiId}
+                            onChange={(e) => setUpiId(e.target.value)}
+                          />
+                        </div>
+                        <div style={{ textAlign: 'center', padding: '16px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border)' }}>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '10px' }}>Or scan this mock QR Code to pay</span>
+                          <div style={{ width: '120px', height: '120px', background: '#fff', padding: '10px', margin: '0 auto', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+                            <div style={{ width: '100px', height: '100px', backgroundImage: 'radial-gradient(#111 25%, transparent 25%), radial-gradient(#111 25%, transparent 25%)', backgroundSize: '10px 10px', backgroundPosition: '0 0, 5px 5px', opacity: 0.8 }} />
+                            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: '#fff', padding: '4px', borderRadius: '4px' }}>
+                              <Skull size={20} color="var(--blood)" />
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Net Banking Form */}
+                    {paymentMethod === 'netbanking' && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Select Bank</label>
+                          <select 
+                            className="input-dark" 
+                            value={selectedBank} 
+                            onChange={(e) => setSelectedBank(e.target.value)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <option value="SBI">State Bank of India</option>
+                            <option value="HDFC">HDFC Bank</option>
+                            <option value="ICICI">ICICI Bank</option>
+                            <option value="AXIS">Axis Bank</option>
+                            <option value="KOTAK">Kotak Mahindra Bank</option>
+                          </select>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Pay Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="btn-blood"
+                      onClick={handlePayment}
+                      style={{ width: '100%', padding: '16px', fontSize: '1.05rem', justifyContent: 'center', marginTop: '24px' }}
+                    >
+                      Pay & Seal Fate (₹{grandTotal.toLocaleString()})
+                    </motion.button>
+                  </div>
+
+                  {/* Right Column: Invoice Receipt */}
+                  <div>
+                    <div className="glass" style={{ padding: '32px', position: 'sticky', top: '100px' }}>
+                      <h3 style={{ fontFamily: "'Cinzel', serif", borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '16px', fontSize: '1.3rem' }}>
+                        Order Summary
+                      </h3>
+                      
+                      {/* Movie mini info */}
+                      <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+                        <img 
+                          src={movie.image} 
+                          alt={movie.title} 
+                          style={{ width: '64px', height: '96px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border)' }} 
+                        />
+                        <div>
+                          <h4 style={{ fontSize: '1.05rem', marginBottom: '4px', fontFamily: "'Cinzel', serif" }}>{movie.title}</h4>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                            <span className="genre-tag" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>{movie.language}</span>
+                            <span className="genre-tag" style={{ fontSize: '0.7rem', padding: '2px 8px', color: 'var(--blood-bright)' }}>{movie.certification}</span>
+                          </div>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{theaters.find(t => t.id === selectedTheater)?.name}</span>
+                        </div>
+                      </div>
+
+                      {/* Date & Time, Seats details */}
+                      <div style={{ fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px dashed var(--border)', paddingBottom: '20px', marginBottom: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Showtime</span>
+                          <span style={{ color: '#fff', fontWeight: 500 }}>
+                            {dates.find(d => d.full === selectedDate)?.date} {dates.find(d => d.full === selectedDate)?.month}, {selectedTime}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Seats ({selectedSeats.length})</span>
+                          <span style={{ color: '#fff', fontWeight: 500, wordBreak: 'break-all', textAlign: 'right', maxWidth: '200px' }}>
+                            {selectedSeats.join(', ')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Detailed billing itemization */}
+                      <div style={{ fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '20px', marginBottom: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Ticket Subtotal</span>
+                          <span style={{ color: '#fff' }}>₹{ticketSubtotal.toLocaleString()}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Convenience Charge</span>
+                          <span style={{ color: '#fff' }}>₹{convenienceFee.toLocaleString()}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '12px' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>CGST (9%)</span>
+                          <span style={{ color: 'var(--text-muted)' }}>₹{cgst.toFixed(2)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '12px' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>SGST (9%)</span>
+                          <span style={{ color: 'var(--text-muted)' }}>₹{sgst.toFixed(2)}</span>
+                        </div>
+                      </div>
+
+                      {/* Grand total */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontFamily: "'Cinzel', serif", fontSize: '1.1rem', fontWeight: 600 }}>Total Amount</span>
+                        <span style={{ color: 'var(--blood-bright)', fontSize: '1.4rem', fontWeight: 700 }}>
+                          ₹{grandTotal.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* STEP 4: BOOKING CONFIRMATION */}
           {step === STEPS.SUMMARY && (
             <motion.div key="summary" variants={stepVariants} initial="enter" animate="center" exit="exit">
               <div style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
@@ -487,7 +796,7 @@ export default function MovieDetailPage({ params }) {
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>Total</div>
-                        <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--blood-bright)' }}>₹{totalPrice.toLocaleString()}</div>
+                        <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--blood-bright)' }}>₹{grandTotal.toLocaleString()}</div>
                       </div>
                     </div>
                   </div>

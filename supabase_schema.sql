@@ -89,20 +89,20 @@ CREATE TABLE IF NOT EXISTS bookings (
 -- ============================
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 
--- Users can view their own bookings, and admin can view all bookings
-CREATE POLICY "Users can view own bookings"
+-- Anyone can view bookings since the UUID is unguessable and needed for QR scanning
+CREATE POLICY "Anyone can view bookings"
   ON bookings FOR SELECT
-  USING (auth.uid() = user_id OR (auth.jwt() ->> 'email') = 'cinemacabreadmin@gmail.com');
+  USING (true);
 
 -- Users can only insert their own bookings
 CREATE POLICY "Users can create own bookings"
   ON bookings FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
--- Users can update their own bookings (for cancellations)
-CREATE POLICY "Users can update own bookings"
+-- Users can update their own bookings, and admin can update any booking (for scanning)
+CREATE POLICY "Users and admin can update bookings"
   ON bookings FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid() = user_id OR (auth.jwt() ->> 'email') = 'cinemacabreadmin@gmail.com');
 
 -- ============================
 -- INDEX for faster lookups

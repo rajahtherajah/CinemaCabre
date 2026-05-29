@@ -58,7 +58,7 @@ function UserMenu() {
             <div style={{ padding: '8px 12px', fontSize: '0.8rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', marginBottom: '4px' }}>
               {user?.email}
             </div>
-            {user?.email === 'admin@admin.com' && (
+            {user?.email === 'cinemacabreadmin@gmail.com' && (
               <Link
                 href="/admin"
                 onClick={() => setOpen(false)}
@@ -126,7 +126,7 @@ export default function MainLayout({ children }) {
             {user && (
               <li><Link href="/tickets" className={`nav-link ${pathname === '/tickets' ? 'nav-link-active' : ''}`}>My Bookings</Link></li>
             )}
-            {user && user.email === 'admin@admin.com' && (
+            {user && user.email === 'cinemacabreadmin@gmail.com' && (
               <li>
                 <Link 
                   href="/admin" 

@@ -23,7 +23,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user || user.email !== 'admin@admin.com') {
+    if (!user || user.email !== 'cinemacabreadmin@gmail.com') {
       router.push('/login?redirect=/admin');
       return;
     }
@@ -69,7 +69,7 @@ export default function AdminDashboard() {
     );
   }
 
-  if (user && user.email !== 'admin@admin.com') {
+  if (user && user.email !== 'cinemacabreadmin@gmail.com') {
     return (
       <div className="page-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
         <div className="glass" style={{ padding: '40px', textAlign: 'center', maxWidth: '450px', border: '1px solid var(--blood)' }}>
@@ -294,7 +294,7 @@ export default function AdminDashboard() {
                         ? b.id.replace('mock-booking-', '#') 
                         : b.id.substring(0, 8).toUpperCase();
                       const displayUsername = b.user_username || b.user_email?.split('@')[0] || (b.user_id === 'admin-user-id' ? 'Admin Demonic' : `User_${b.user_id.substring(0, 6)}`);
-                      const displayEmail = b.user_email || (b.user_id === 'admin-user-id' ? 'admin@admin.com' : '');
+                      const displayEmail = b.user_email || (b.user_id === 'admin-user-id' ? 'cinemacabreadmin@gmail.com' : '');
                       
                       return (
                         <tr 

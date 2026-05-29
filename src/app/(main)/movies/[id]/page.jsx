@@ -44,9 +44,9 @@ export default function MovieDetailPage({ params }) {
   const [paymentStepMessage, setPaymentStepMessage] = useState('');
 
   const seatRows = [
-    { label: 'PREMIUM', rows: ['A', 'B', 'C'], cols: 16, priceKey: 'premium' },
-    { label: 'EXECUTIVE', rows: ['D', 'E', 'F', 'G'], cols: 16, priceKey: 'executive' },
-    { label: 'NORMAL', rows: ['H', 'I', 'J', 'K', 'L'], cols: 16, priceKey: 'normal' },
+    { label: 'NORMAL', rows: ['A', 'B', 'C', 'D', 'E'], cols: 16, priceKey: 'normal' },
+    { label: 'EXECUTIVE', rows: ['F', 'G', 'H', 'I'], cols: 16, priceKey: 'executive' },
+    { label: 'PREMIUM', rows: ['J', 'K', 'L'], cols: 16, priceKey: 'premium' },
   ];
 
   const toggleSeat = (seatId) => {

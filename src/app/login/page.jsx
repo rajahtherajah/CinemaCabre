@@ -15,7 +15,7 @@ function LoginContent() {
   const { signIn, signUp } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/movies';
+  const redirect = searchParams.get('redirect') || '/';
 
   const handleLogin = async (e) => {
     e.preventDefault();

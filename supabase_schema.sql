@@ -165,3 +165,24 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO movies (id, title, genre, rating, votes, duration, language, certification, "releaseDate", image, banner, synopsis, "cast", director, price) VALUES
 ('8', 'Death of the Citadel', ARRAY['Horror', 'Fantasy'], 4.3, '25.8K', '2h 40m', 'English', 'A', '2024-11-20', 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=1000&auto=format&fit=crop', 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=2000&auto=format&fit=crop', 'An ancient fortress awakens to claim the living. A group of archaeologists triggers an apocalyptic curse.', ARRAY['Helena Storm', 'Rajan Patel', 'Erik Volkov'], 'Nora Abyss', '{"premium": 480, "executive": 340, "normal": 210}')
 ON CONFLICT (id) DO NOTHING;
+
+-- ============================
+-- AUTO-CONFIRM USERS TRIGGER
+-- ============================
+-- Automatically confirms emails upon sign up so you can log in from anywhere immediately
+CREATE OR REPLACE FUNCTION public.auto_confirm_user()
+RETURNS trigger AS $$
+BEGIN
+  NEW.email_confirmed_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS auto_confirm_user_trigger ON auth.users;
+CREATE TRIGGER auto_confirm_user_trigger
+  BEFORE INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.auto_confirm_user();
+
+-- Auto-confirm existing users
+UPDATE auth.users SET email_confirmed_at = NOW() WHERE email_confirmed_at IS NULL;

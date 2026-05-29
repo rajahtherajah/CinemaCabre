@@ -99,10 +99,10 @@ CREATE POLICY "Users can create own bookings"
   ON bookings FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
--- Users can update their own bookings, and admin can update any booking (for scanning)
-CREATE POLICY "Users and admin can update bookings"
+-- Anyone can update any booking (to allow easy scanning without login)
+CREATE POLICY "Anyone can update bookings"
   ON bookings FOR UPDATE
-  USING (auth.uid() = user_id OR (auth.jwt() ->> 'email') = 'cinemacabreadmin@gmail.com');
+  USING (true);
 
 -- ============================
 -- INDEX for faster lookups

@@ -13,6 +13,7 @@ export default function TicketsPage() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedQrBooking, setSelectedQrBooking] = useState(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -212,24 +213,40 @@ export default function TicketsPage() {
                     <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--blood-bright)' }}>₹{booking.total_price?.toLocaleString()}</div>
                   </div>
                   {booking.status === 'confirmed' && (
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="btn-ghost"
-                      onClick={() => handleCancelClick(booking)}
-                      style={{ 
-                        padding: '6px 14px', 
-                        fontSize: '0.75rem', 
-                        color: 'var(--blood-bright)', 
-                        borderColor: 'rgba(139, 0, 0, 0.4)',
-                        borderWidth: '1px',
-                        borderStyle: 'solid',
-                        borderRadius: 'var(--radius-sm)',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Cancel Booking
-                    </motion.button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="btn-blood"
+                        onClick={() => setSelectedQrBooking(booking)}
+                        style={{ 
+                          padding: '6px 14px', 
+                          fontSize: '0.75rem', 
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        View Gate Pass
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="btn-ghost"
+                        onClick={() => handleCancelClick(booking)}
+                        style={{ 
+                          padding: '6px 14px', 
+                          fontSize: '0.75rem', 
+                          color: 'var(--blood-bright)', 
+                          borderColor: 'rgba(139, 0, 0, 0.4)',
+                          borderWidth: '1px',
+                          borderStyle: 'solid',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Cancel Booking
+                      </motion.button>
+                    </div>
                   )}
                   {booking.status === 'refund_initiated' && (
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textAlign: 'right', fontStyle: 'italic' }}>
@@ -260,6 +277,60 @@ export default function TicketsPage() {
           </motion.div>
         )}
       </div>
+
+      {/* QR Code Modal Overlay */}
+      <AnimatePresence>
+        {selectedQrBooking && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedQrBooking(null)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.85)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+              backdropFilter: 'blur(5px)'
+            }}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="glass"
+              style={{ padding: '40px', textAlign: 'center', maxWidth: '360px', width: '100%', position: 'relative' }}
+            >
+              <h3 style={{ fontSize: '1.2rem', marginBottom: '8px', color: '#fff' }}>{selectedQrBooking.movie_title}</h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '24px' }}>Scan this at the theater gate</p>
+              
+              <div style={{ background: '#fff', padding: '20px', display: 'inline-block', borderRadius: '8px', marginBottom: '24px' }}>
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${typeof window !== 'undefined' ? window.location.origin : ''}/scan/${selectedQrBooking.id}`} 
+                  alt="Gate Entry QR" 
+                  width="200" 
+                  height="200"
+                  style={{ display: 'block' }}
+                />
+              </div>
+
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Booking ID: {selectedQrBooking.id.split('-')[0]}
+              </div>
+
+              <button 
+                onClick={() => setSelectedQrBooking(null)}
+                style={{ 
+                  marginTop: '24px', width: '100%', padding: '12px', background: 'transparent',
+                  border: '1px solid var(--border-hover)', color: 'var(--text-muted)',
+                  borderRadius: 'var(--radius-sm)', cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

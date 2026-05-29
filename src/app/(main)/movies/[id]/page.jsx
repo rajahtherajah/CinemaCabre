@@ -42,6 +42,7 @@ export default function MovieDetailPage({ params }) {
   const [selectedBank, setSelectedBank] = useState('SBI');
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [paymentStepMessage, setPaymentStepMessage] = useState('');
+  const [bookingId, setBookingId] = useState(null);
 
   const seatRows = [
     { label: 'NORMAL', rows: ['A', 'B', 'C', 'D', 'E'], cols: 16, priceKey: 'normal' },
@@ -116,6 +117,7 @@ export default function MovieDetailPage({ params }) {
       return;
     }
 
+    setBookingId(data.id);
     setStep(STEPS.SUMMARY);
     setPaymentProcessing(false);
   };
@@ -781,6 +783,26 @@ export default function MovieDetailPage({ params }) {
                   </div>
 
                   <hr className="ticket-divider" />
+
+                  {/* QR Code Section */}
+                  {bookingId && (
+                    <div style={{ padding: '20px 28px 0', textAlign: 'center' }}>
+                      <div style={{ background: '#fff', padding: '16px', display: 'inline-block', borderRadius: '8px', marginBottom: '8px' }}>
+                        {/* Use typeof window !== 'undefined' to safely get origin */}
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${typeof window !== 'undefined' ? window.location.origin : ''}/scan/${bookingId}`} 
+                          alt="Ticket QR Code" 
+                          width="150" 
+                          height="150"
+                        />
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        Gate Entry Code
+                      </div>
+                    </div>
+                  )}
+
+                  <hr className="ticket-divider" style={{ marginTop: '20px' }} />
 
                   <div style={{ padding: '20px 28px 28px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

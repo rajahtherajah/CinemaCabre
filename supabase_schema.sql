@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   seats TEXT[] NOT NULL,
   total_price INTEGER NOT NULL,
   status TEXT NOT NULL DEFAULT 'confirmed',
+  scanned_count INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

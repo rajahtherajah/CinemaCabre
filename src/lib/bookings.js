@@ -30,7 +30,22 @@ export async function createBooking({ userId, movieId, movieTitle, theaterName, 
       seats: seats,
       total_price: totalPrice,
       status: 'confirmed',
+      scanned_count: 0,
     }])
+    .select()
+    .single();
+
+  return { data, error };
+}
+
+/**
+ * Increment the scanned ticket count by 1
+ */
+export async function scanBooking(bookingId, currentScannedCount, amount = 1) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .update({ scanned_count: currentScannedCount + amount })
+    .eq('id', bookingId)
     .select()
     .single();
 
